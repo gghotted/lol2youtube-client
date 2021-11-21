@@ -1,0 +1,1 @@
+from recorder.recorders import FixedCamKillRecorder
