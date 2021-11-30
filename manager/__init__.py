@@ -28,7 +28,8 @@ class Manager:
             self.download(kill_events[0].timeline)
             self.open_replay(kill_events[0].timeline)
             save_path = self.record(kill_events)
-            self.send_replay_to_server(kill_events[0].id, save_path)
+            if not settings.TEST_MODE:
+                self.send_replay_to_server(kill_events[0].id, save_path)
             self.kill_replay_process(kill_events[0].timeline)
             self.recorded_count += 1
         except ClientAPIFail as e:

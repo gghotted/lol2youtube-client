@@ -22,3 +22,10 @@ set('REPLAY_RECORD_COUNT', 100)
 set('CLIENT_API_RETRY_INTERVAL', 2)
 
 set('CLIENT_API_MAX_RETRY_COUNT', 5)
+
+set('TEST_MODE', False)
+
+g = globals()
+if g['TEST_MODE']:
+    g['REPLAY_RECORD_COUNT'] = 1
+    
