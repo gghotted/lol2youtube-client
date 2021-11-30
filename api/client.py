@@ -1,9 +1,10 @@
 import base64
-import re
-import subprocess
+
+import psutil
 
 from api.base import API
 
+psutil.process_iter
 
 class ClientAPI(API):
     def __init__(self, **kwargs):
@@ -11,23 +12,29 @@ class ClientAPI(API):
         super().__init__(**kwargs)
 
     def _get_client_info(self):
-        proc = subprocess.Popen(
-            'ps -A | grep LeagueClientUx',
-            stdout=subprocess.PIPE,
-            shell=True
-        )
-        lines = proc.stdout.readlines()
-
-        port_pat = re.compile('--app-port=(.*?)\ ')
-        auth_pat = re.compile('--remoting-auth-token=(.*?)\ ')
-        for line in lines:
-            line = line.decode()
-            port = port_pat.findall(line)
-            auth = auth_pat.findall(line)
-            if port and auth:
-                return port[0], auth[0]
-
-        raise Exception('실행중인 롤 클라이언트를 찾을 수 없습니다.')
+        try:
+            client = next(
+                filter(
+                    lambda p: p.name() == 'LeagueClientUx.exe',
+                    psutil.process_iter()
+                )
+            )
+            args = client.cmdline()
+            port = next(
+                filter(
+                    lambda arg: arg.startswith('--app-port='),
+                    args
+                )
+            ).split('=')[1]
+            auth = next(
+                filter(
+                    lambda arg: arg.startswith('--remoting-auth-token='),
+                    args
+                )
+            ).split('=')[1]
+            return port, auth
+        except:
+            raise Exception('실행중인 롤 클라이언트를 찾을 수 없습니다.')
 
     @property
     def host(self):

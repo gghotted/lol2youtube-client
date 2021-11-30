@@ -1,9 +1,9 @@
 import signal
-import subprocess
 import time
 from os import kill
 from pathlib import Path
 
+import psutil
 import settings
 from api.client import ReplayDownLoadAPI, ReplayPathAPI, ReplayWatchAPI
 from api.data_server import KillReplay, NotRecordedKillEvent, ReplayBlackList
@@ -47,7 +47,7 @@ class Manager:
             raise ClientAPIFail('리플레이 다운로드 실패')
 
         ReplayDownLoadAPI(match_id=self.match_id_no_region(match_id)).post()
-        filepath = Path(f'{self.download_dir}/{self.cvt_replay_filename(match_id)}.rofl')
+        filepath = Path(f'{self.download_dir}/{self.cvt_replay_filename(match_id)}')
 
         if not filepath.is_file():
             time.sleep(settings.CLIENT_API_RETRY_INTERVAL)
@@ -58,7 +58,7 @@ class Manager:
             raise ClientAPIFail('리플레이 오픈 실패')
 
         ReplayWatchAPI(match_id=self.match_id_no_region(match_id)).post()
-        if self.get_process_replay_process_info(match_id) == None:
+        if self.get_process_replay_process_pid(match_id) == None:
             time.sleep(settings.CLIENT_API_RETRY_INTERVAL)
             self.open_replay(match_id, try_count + 1)
 
@@ -79,26 +79,25 @@ class Manager:
             )
 
     def kill_replay_process(self, match_id):
-        proc_info = self.get_process_replay_process_info(match_id)
-        pid = int(proc_info[0])
+        pid = self.get_process_replay_process_pid(match_id)
         kill(pid, signal.SIGINT)
         time.sleep(3)
 
-    def get_process_replay_process_info(self, match_id):
+    def get_process_replay_process_pid(self, match_id):
         replay_name = self.cvt_replay_filename(match_id)
-        proc = subprocess.Popen(
-            f'ps -A | grep {replay_name}.rofl',
-            stdout=subprocess.PIPE,
-            shell=True
-        )
-        for line in proc.stdout.readlines():
-            line = line.decode()
-            info = line.split()
-            if 'tty' in info[1]:
-                continue
-            else:
-                return info
-        return None
+        try:
+            lol = next(
+                filter(
+                    lambda p: p.name() == 'League of Legends.exe', 
+                    psutil.process_iter()
+                )
+            )
+            args = lol.cmdline()
+            if args[1] != self.download_dir + '/' + replay_name:
+                return None
+            return lol.pid
+        except:
+            return None
 
     def clientapi_except_handle(self, e, match_id):
         ReplayBlackList().post(
@@ -109,7 +108,7 @@ class Manager:
         )
 
     def cvt_replay_filename(self, match_id):
-        return match_id.replace('_', '-')
+        return match_id.replace('_', '-') + '.rofl'
 
     def is_continuable(self):
         return self.recorded_count < self.record_count
