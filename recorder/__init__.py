@@ -1,1 +1,1 @@
-from recorder.recorders import FixedCamKillRecorder
+from recorder.recorders import AutoCamKillRecorder, FixedCamKillRecorder

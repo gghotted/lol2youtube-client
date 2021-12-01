@@ -4,15 +4,20 @@ from os import kill
 from pathlib import Path
 
 import psutil
+import pygetwindow as gw
 import settings
 from api.client import ReplayDownLoadAPI, ReplayPathAPI, ReplayWatchAPI
 from api.data_server import KillReplay, NotRecordedKillEvent, ReplayBlackList
 from api.exceptions import ClientAPIFail
 from easydict import EasyDict
-from recorder import FixedCamKillRecorder
+from editor.editors import SimpleInterfaceEditor
+from recorder import AutoCamKillRecorder, FixedCamKillRecorder
 
 
 class Manager:
+    recorder_class = AutoCamKillRecorder
+    editor_class = SimpleInterfaceEditor
+
     def __init__(self, record_count):
         self.record_count = record_count
         self.recorded_count = 0
@@ -24,17 +29,36 @@ class Manager:
 
     def loop(self):
         try:
+            self.empty_save_dir()
             kill_events = self.get_kill_events()
             self.download(kill_events[0].timeline)
             self.open_replay(kill_events[0].timeline)
+            self.focus_replay_window()
             save_path = self.record(kill_events)
+            self.kill_replay_process(kill_events[0].timeline)
+            save_path = self.edit_replay(save_path)
             if not settings.TEST_MODE:
                 self.send_replay_to_server(kill_events[0].id, save_path)
-            self.kill_replay_process(kill_events[0].timeline)
             self.recorded_count += 1
         except ClientAPIFail as e:
             print(e)
             self.clientapi_except_handle(e, kill_events[0].timeline)
+
+    def empty_save_dir(self):
+        for f in settings.REPLAY_SAVE_DIR.iterdir():
+            f.unlink()
+
+    def edit_replay(self, path):
+        return self.editor_class(path, 'replays/result.mp4').excute()
+
+    def focus_replay_window(self):
+        while True:
+            try:
+                window = gw.getWindowsWithTitle('League of Legends (TM) Client')[0]
+                window.activate()
+                return
+            except:
+                continue
 
     def match_id_no_region(self, match_id):
         return match_id.split('_')[1]
@@ -64,9 +88,15 @@ class Manager:
             self.open_replay(match_id, try_count + 1)
 
     def record(self, kill_events):
-        save_path = str(settings.REPLAY_SAVE_DIR / (kill_events[0].timeline + '.webm'))
-        FixedCamKillRecorder(kill_events, save_path=save_path).execute()
+        self.recorder_class(kill_events, save_path='').execute()
+        save_path = self.get_saved_replay_path()
         return save_path
+
+    def get_saved_replay_path(self):
+        files = list(settings.REPLAY_SAVE_DIR.iterdir())
+        if len(files) != 1:
+            raise Exception(f'{settings.REPLAY_SAVE_DIR}에 파일 한 개가 필요합니다.')
+        return str(files[0])
 
     def send_replay_to_server(self, event_id, path):
         with open(path, 'rb') as f:

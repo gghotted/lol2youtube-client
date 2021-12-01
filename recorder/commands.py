@@ -1,8 +1,9 @@
 import time
 
 import pyautogui
+import pydirectinput
 import settings
-from api.replay import PlaybackAPI, RecordingAPI
+from api.replay import PlaybackAPI, RecordingAPI, RenderAPI
 from requests.exceptions import ConnectionError
 from waiting import wait
 
@@ -33,6 +34,14 @@ class WaitCompleteRecord(Wait):
         return RecordingAPI().get().json()['recording'] == False
 
 
+class WaitPlayTime(Wait):
+    def __init__(self, sec):
+        self.sec = sec
+    
+    def check(self):
+        return PlaybackAPI().get().json()['time'] > self.sec
+
+
 class Sleep(Command):
     def __init__(self, sec):
         self.sec = sec
@@ -53,17 +62,10 @@ class SetTime(Command):
 
 class Record(Command):
     def __init__(self, path, start=-1, end=-1):
-        self.data = {
-            'path': path,
-            'startTime': start,
-            'endTime': end,
-            # 'enforceFrameRate': True,
-            # 'lossless': True,
-            # 'framesPerSecond': 60,
-        }
+        pass
 
     def execute(self):
-        RecordingAPI().post(self.data)
+        pydirectinput.press('f12')
 
 
 class PressKey(Command):
@@ -75,4 +77,13 @@ class PressKey(Command):
         self.kwargs = kwargs
 
     def execute(self):
-        pyautogui.press(self.keys, **self.kwargs)
+        pydirectinput.press(self.keys, **self.kwargs)
+        print(f'{self.keys} pressed!')
+
+
+class SetRenderProperty(Command):
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+    
+    def execute(self):
+        return RenderAPI().post(self.kwargs)
