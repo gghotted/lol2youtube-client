@@ -1,53 +1,71 @@
 from moviepy.editor import CompositeVideoClip, VideoFileClip
 from moviepy.video.fx.all import crop
+from moviepy.video.VideoClip import ColorClip
+
+from editor.clip_makers import (MainClipMaker, MinimapMaker, SummonerMaker,
+                                SummonerTeamMaker)
 
 
 class Editor:
-    width: int = None
-    height: int = None
-
     def __init__(self, filepath, result_path=None):
         self.clip = VideoFileClip(filepath)
         self.result_path = filepath
         if result_path:
             self.result_path = result_path
-    
+
     def excute(self):
-        self.cropped = self.crop()
-        clips = self.get_cropped_objects()
-        clips.insert(0, self.cropped)
-        result = CompositeVideoClip(clips)
-        result.write_videofile(self.result_path, threads=4)
+        self.get_final_clip().write_videofile(self.result_path)
         return self.result_path
 
-    def crop(self):
-        if self.width == self.clip.w and self.height == self.clip.h:
-            return self.clip
-        return crop(
+    def get_final_clip(self):
+        '''
+        상속하여 clip을 composite할때는 audio를 0으로 해야함을 주의
+        '''
+        return MainClipMaker().make(self.clip)
+
+
+class MinimapInterfaceEditor(Editor):
+    minimap_position = ('left', 'bottom')
+
+    def get_final_clip(self):
+        main = MainClipMaker.make(self.clip)
+        minimap = MinimapMaker.make(self.clip)
+        return CompositeVideoClip([
+            main,
+            minimap.set_position(self.minimap_position),
+        ])
+
+
+class SummonerMinmapInterfaceEditor(Editor):
+    summoner_height = 80
+    minimap_height = 200
+    bg_height = MainClipMaker.h + summoner_height + minimap_height
+    minimap_position = ('center', 'bottom')
+
+    def get_final_clip(self):
+        main = MainClipMaker.make(self.clip)
+        minimap = MinimapMaker.make(self.clip).resize(height=self.minimap_height)
+        bg = ColorClip(
+            (MainClipMaker.w, self.bg_height),
+            color=(0, 0, 0),
+            duration=self.clip.duration
+        )
+        team1 = SummonerTeamMaker.make(
             self.clip,
-            x_center=self.clip.w / 2,
-            width=self.width,
-            y_center=self.clip.h / 2,
-            height=self.height,
-        )
+            SummonerTeamMaker.TEAM_LEFT,
+            interval_ratio=0.2,
+            order_reverse=True,
+        ).resize(height=self.summoner_height)
+        team2 = SummonerTeamMaker.make(
+            self.clip,
+            SummonerTeamMaker.TEAM_RIFHT,
+            interval_ratio=0.2,
+        ).resize(height=self.summoner_height)
 
-    def get_cropped_objects(self):
-        '''
-        영상에 추가할 항목을 리턴하는 함수를 작성하세요
-        '''
-        objects = []
-        for name in dir(self):
-            if name.startswith('cropped_object_'):
-                f = getattr(self, name)
-                objects.append(f(self.clip).volumex(0))
-        return objects
-
-
-class SimpleInterfaceEditor(Editor):
-    width = 1080
-    height = 1080
-
-    def cropped_object_minimap(self, clip):
-        return crop(clip, x1=1720, y1=880, x2=1910, y2=1070).set_position(
-            ('left', 'top')
-        )
+        return CompositeVideoClip([
+            bg,
+            main.set_position(('center', self.summoner_height)),
+            minimap.set_position(self.minimap_position),
+            team1.set_position(('left', 'top')),
+            team2.set_position(('right', 'top')),
+        ])

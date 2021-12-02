@@ -35,7 +35,7 @@ class Recorder:
             interfaceChat=False,
             interfaceAnnounce=True,
             interfaceScoreboard=False,
-            interfaceScore=True,
+            interfaceScore=False,
             interfaceMinimap=True,
             interfaceFrames=True,
         )

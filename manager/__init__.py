@@ -10,13 +10,14 @@ from api.client import ReplayDownLoadAPI, ReplayPathAPI, ReplayWatchAPI
 from api.data_server import KillReplay, NotRecordedKillEvent, ReplayBlackList
 from api.exceptions import ClientAPIFail
 from easydict import EasyDict
-from editor.editors import SimpleInterfaceEditor
+from editor.editors import (MinimapInterfaceEditor,
+                            SummonerMinmapInterfaceEditor)
 from recorder import AutoCamKillRecorder, FixedCamKillRecorder
 
 
 class Manager:
     recorder_class = AutoCamKillRecorder
-    editor_class = SimpleInterfaceEditor
+    editor_class = SummonerMinmapInterfaceEditor
 
     def __init__(self, record_count):
         self.record_count = record_count
