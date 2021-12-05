@@ -91,6 +91,7 @@ class Manager:
     def record(self, kill_events):
         self.recorder_class(kill_events, save_path='').execute()
         save_path = self.get_saved_replay_path()
+        self.org_file_path = save_path
         return save_path
 
     def get_saved_replay_path(self):
@@ -100,13 +101,14 @@ class Manager:
         return str(files[0])
 
     def send_replay_to_server(self, event_id, path):
-        with open(path, 'rb') as f:
+        with open(path, 'rb') as f, open(self.org_file_path, 'rb') as org_f:
             KillReplay().post(
                 data={
                     'event': event_id
                 },
                 files={
-                    'file': f
+                    'file': f,
+                    'org_file': org_f,
                 }
             )
 
