@@ -47,19 +47,32 @@ class Manager:
 
     def empty_save_dir(self):
         for f in settings.REPLAY_SAVE_DIR.iterdir():
-            f.unlink()
+            try:
+                f.unlink()
+            except Exception as e:
+                for proc in psutil.process_iter():
+                    try:
+                        for file in proc.open_files():
+                            if Path(file.path).name == f.name:
+                                kill(proc.pid, signal.SIGINT)
+                    except:
+                        continue
+                f.unlink()
 
     def edit_replay(self, path):
         return self.editor_class(path, 'replays/result.mp4').excute()
 
     def focus_replay_window(self):
         while True:
-            try:
-                window = gw.getWindowsWithTitle('League of Legends (TM) Client')[0]
-                window.activate()
-                return
-            except:
+            windows = gw.getWindowsWithTitle('League of Legends (TM) Client')
+            if len(windows) == 0:
                 continue
+            window = windows[0]
+            try:
+                window.activate()
+            except gw.PyGetWindowException:
+                pass
+            break
 
     def match_id_no_region(self, match_id):
         return match_id.split('_')[1]
