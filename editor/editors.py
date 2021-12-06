@@ -14,7 +14,16 @@ class Editor:
             self.result_path = result_path
 
     def excute(self):
-        self.get_final_clip().write_videofile(self.result_path)
+        self.get_final_clip().write_videofile(
+            self.result_path, 
+            codec='h264_nvenc',
+            bitrate='6000k', 
+            audio_bitrate='195k',
+            ffmpeg_params=[
+                '-profile:v',
+                'high',
+            ]
+        )
         return self.result_path
 
     def get_final_clip(self):
