@@ -29,15 +29,9 @@ class Recorder:
                 self.on_ready()
 
     def on_ready(self):
+        PressKey('a').execute()
         setter = SetRenderProperty(
-            interfaceReplay=False,
-            interfaceTimeline=False,
-            interfaceChat=False,
-            interfaceAnnounce=True,
-            interfaceScoreboard=False,
-            interfaceScore=False,
-            interfaceMinimap=True,
-            interfaceFrames=True,
+            interfaceMinimap=False
         )
         setter.execute()
         setter.execute()
@@ -72,13 +66,15 @@ class FixedCamKillRecorder(Recorder):
             SetTime(self.start_time - 10),
             Sleep(9),
 
-            # 챔피언 화면 고정
+            # 수동으로 오토 카메라 설정
             PressKey(self._get_fixed_cam_key(), presses=2),
-            Sleep(1),
+            Sleep(0.5),
 
             # 현 시점부터 end_time까지 녹화
-            Record(self.save_path, -1, self.end_time),
-            WaitCompleteRecord(),
+            PressKey('f12'),
+            WaitPlayTime(self.end_time),
+            PressKey('f12'),
+            Sleep(1),
         ]
 
     def _get_fixed_cam_key(self):

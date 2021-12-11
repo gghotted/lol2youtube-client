@@ -1,5 +1,5 @@
 import settings
-from manager import Manager
+from manager import Manager, NoneEditorManager
 
 '''
 관리자 권한으로 실행해야함
@@ -17,5 +17,5 @@ vsoce, cmd를 관리자 권한으로 실행하고 스크립트를 실행
 '''
 
 if __name__ == '__main__':
-    manager = Manager(settings.REPLAY_RECORD_COUNT)
+    manager = NoneEditorManager(settings.REPLAY_RECORD_COUNT)
     manager.run()

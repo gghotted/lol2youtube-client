@@ -15,6 +15,9 @@ from editor.editors import (MinimapInterfaceEditor,
 from recorder import AutoCamKillRecorder, FixedCamKillRecorder
 
 
+class RecordNotSuccess(Exception): pass
+
+
 class Manager:
     recorder_class = AutoCamKillRecorder
     editor_class = SummonerMinmapInterfaceEditor
@@ -41,7 +44,7 @@ class Manager:
             if not settings.TEST_MODE:
                 self.send_replay_to_server(kill_events[0].id, save_path)
             self.recorded_count += 1
-        except ClientAPIFail as e:
+        except (ClientAPIFail, RecordNotSuccess) as e:
             print(e)
             self.clientapi_except_handle(e, kill_events[0].timeline)
 
@@ -55,6 +58,7 @@ class Manager:
                         for file in proc.open_files():
                             if Path(file.path).name == f.name:
                                 kill(proc.pid, signal.SIGINT)
+                                time.sleep(5)
                     except:
                         continue
                 f.unlink()
@@ -109,7 +113,9 @@ class Manager:
 
     def get_saved_replay_path(self):
         files = list(settings.REPLAY_SAVE_DIR.iterdir())
-        if len(files) != 1:
+        if len(files) == 0:
+            raise RecordNotSuccess('정상적으로 녹화되지 않습니다.')
+        if len(files) > 1:
             raise Exception(f'{settings.REPLAY_SAVE_DIR}에 파일 한 개가 필요합니다.')
         return str(files[0])
 
@@ -162,3 +168,21 @@ class Manager:
 
     def get_download_dir(self):
         return ReplayPathAPI().get().json()
+
+
+class NoneEditorManager(Manager):
+    recorder_class = FixedCamKillRecorder
+
+    def send_replay_to_server(self, event_id, path):
+        with open(path, 'rb') as f:
+            KillReplay().post(
+                data={
+                    'event': event_id
+                },
+                files={
+                    'org_file': f
+                }
+            )
+    
+    def edit_replay(self, path):
+        return path

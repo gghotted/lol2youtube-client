@@ -24,6 +24,7 @@ class Editor:
                 'high',
             ]
         )
+        self.clip.close()
         return self.result_path
 
     def get_final_clip(self):
