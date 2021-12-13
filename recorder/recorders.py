@@ -109,3 +109,20 @@ class AutoCamKillRecorder(FixedCamKillRecorder):
             PressKey('f12'),
             Sleep(1),
         ]
+
+
+class VictimAutoCamKillRecorder(AutoCamKillRecorder):
+    def on_ready(self):
+        super().on_ready()
+        PressKey(self._get_victim_fog_activate_key()).execute()
+
+    def _get_victim_fog_activate_key(self):
+        killer_idx = self.kill_events[0].killer.index
+
+        if killer_idx in {1, 2, 3, 4, 5}:
+            '''
+            killer가 왼쪽 팀이므로 오른 쪽 팀의 시야만 활성화 해야함
+            '''
+            return 'f2'
+        else:
+            return 'f1'

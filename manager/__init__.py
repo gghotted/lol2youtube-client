@@ -12,7 +12,8 @@ from api.exceptions import ClientAPIFail
 from easydict import EasyDict
 from editor.editors import (MinimapInterfaceEditor,
                             SummonerMinmapInterfaceEditor)
-from recorder import AutoCamKillRecorder, FixedCamKillRecorder
+from recorder import (AutoCamKillRecorder, FixedCamKillRecorder,
+                      VictimAutoCamKillRecorder)
 
 
 class RecordNotSuccess(Exception): pass
@@ -21,6 +22,7 @@ class RecordNotSuccess(Exception): pass
 class Manager:
     recorder_class = AutoCamKillRecorder
     editor_class = SummonerMinmapInterfaceEditor
+    kill_event_queries = dict()
 
     def __init__(self, record_count):
         self.record_count = record_count
@@ -82,7 +84,7 @@ class Manager:
         return match_id.split('_')[1]
 
     def get_kill_events(self):
-        kill_events = NotRecordedKillEvent().get().json()
+        kill_events = NotRecordedKillEvent().get(**self.kill_event_queries).json()
         return [EasyDict(e) for e in kill_events]
 
     def download(self, match_id, try_count=0):
@@ -186,3 +188,10 @@ class NoneEditorManager(Manager):
     
     def edit_replay(self, path):
         return path
+
+
+class UltimateNoneEditorManager(NoneEditorManager):
+    recorder_class = VictimAutoCamKillRecorder
+    kill_event_queries = {
+        'o': '-sequence_ultimate_hit_count',
+    }

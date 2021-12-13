@@ -1,4 +1,5 @@
 import json
+import urllib
 
 import requests
 
@@ -38,8 +39,12 @@ class API:
         return requests.post(self.url, data=data, headers=self.headers, verify=self.verify, files=files)
 
     @check_allow
-    def get(self):
-        return requests.get(self.url, verify=self.verify, headers=self.headers)
+    def get(self, **queries):
+        url = self.url
+        if queries:
+            query_str = urllib.parse.urlencode(queries)
+            url += '?' + query_str
+        return requests.get(url, verify=self.verify, headers=self.headers)
 
     @property
     def url(self):

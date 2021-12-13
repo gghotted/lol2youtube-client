@@ -25,6 +25,8 @@ set('CLIENT_API_MAX_RETRY_COUNT', 5)
 
 set('TEST_MODE', False)
 
+set('MANAGER_NAME', 'NoneEditorManager')
+
 g = globals()
 if g['TEST_MODE']:
     g['REPLAY_RECORD_COUNT'] = 1
