@@ -30,16 +30,33 @@ class Recorder:
 
     def on_ready(self):
         PressKey('a').execute()
-        setter = SetRenderProperty(
-            interfaceMinimap=False
+
+    def get_render_property_command(self):
+        return SetRenderProperty(
+            interfaceMinimap=False,
+            interfaceFrames=False,
+            fieldOfView=45.0,
+            heightFogEnabled=True,
+            heightFogStart=-50.0,
+            heightFogEnd=-200.0,
+            heightFogIntensity=0.3,
+            heightFogColor= {
+                "a": 1.0,
+                "b": 1.0,
+                "g": 0.6666666865348816,
+                "r": 0.6666666865348816
+            },
+            sunDirection={
+                "x": 0.5,
+                "y": -0.3,
+                "z": 0.5,
+            }
         )
-        setter.execute()
-        setter.execute()
 
 
 class FixedCamKillRecorder(Recorder):
 
-    def __init__(self, kill_events, start_offset=-20, end_offset=8, **kwargs):
+    def __init__(self, kill_events, start_offset=-10, end_offset=5, **kwargs):
         self.kill_events = kill_events
         self.start_offset = start_offset
         self.end_offset = end_offset
@@ -64,11 +81,14 @@ class FixedCamKillRecorder(Recorder):
             # 리플레이 시점 이동
             # 요청 후 안정화 시간으로 10초 대기
             SetTime(self.start_time - 10),
-            Sleep(9),
+            Sleep(8),
 
             # 수동으로 오토 카메라 설정
             PressKey(self._get_fixed_cam_key(), presses=2),
             Sleep(0.5),
+
+            self.get_render_property_command(),
+            Sleep(1),
 
             # 현 시점부터 end_time까지 녹화
             PressKey('f12'),
@@ -97,11 +117,14 @@ class AutoCamKillRecorder(FixedCamKillRecorder):
             # 리플레이 시점 이동
             # 요청 후 안정화 시간으로 10초 대기
             SetTime(self.start_time - 10),
-            Sleep(9),
+            Sleep(8),
 
             # 수동으로 오토 카메라 설정
             PressKey('d', presses=2),
             Sleep(0.5),
+
+            self.get_render_property_command(),
+            Sleep(1),
 
             # 현 시점부터 end_time까지 녹화
             PressKey('f12'),
@@ -126,3 +149,11 @@ class VictimAutoCamKillRecorder(AutoCamKillRecorder):
             return 'f2'
         else:
             return 'f1'
+
+
+class ChallengerFixedCamKillRecorder(FixedCamKillRecorder):
+    def get_end_time(self):
+        end_time = super().get_end_time()
+        if len(self.kill_events) == 5:
+            return end_time
+        return end_time + 5

@@ -25,7 +25,9 @@ class API:
     allow_methods = tuple()
     data_to_json = True
 
-    def __init__(self, **kwargs):
+    def __init__(self, host=None, **kwargs):
+        if host:
+            self.host = host
         self.kwargs = kwargs
 
     @check_allow
@@ -37,6 +39,16 @@ class API:
             data = json.dumps(data)
 
         return requests.post(self.url, data=data, headers=self.headers, verify=self.verify, files=files)
+
+    @check_allow
+    def patch(self, data=None, files=None):
+        data = data or {}
+        files = files or {}
+
+        if self.data_to_json:
+            data = json.dumps(data)
+
+        return requests.patch(self.url, data=data, headers=self.headers, verify=self.verify, files=files)
 
     @check_allow
     def get(self, **queries):

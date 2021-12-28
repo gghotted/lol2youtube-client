@@ -19,6 +19,11 @@ class KillReplay(DataServerAPI):
     endpoint = '/replay/kill/'
 
 
+class KillReplayUpdate(DataServerAPI):
+    allow_methods = ('patch', )
+    endpoint = '/replay/kill/{id}'
+
+
 class ReplayBlackList(DataServerAPI):
     allow_methods = ('post', )
     endpoint = f'/replay/blacklist/'

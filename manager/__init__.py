@@ -4,16 +4,17 @@ from os import kill
 from pathlib import Path
 
 import psutil
+import pydirectinput
 import pygetwindow as gw
 import settings
 from api.client import ReplayDownLoadAPI, ReplayPathAPI, ReplayWatchAPI
 from api.data_server import KillReplay, NotRecordedKillEvent, ReplayBlackList
 from api.exceptions import ClientAPIFail
 from easydict import EasyDict
-from editor.editors import (MinimapInterfaceEditor,
+from editor.editors import (Editor, MinimapInterfaceEditor,
                             SummonerMinmapInterfaceEditor)
-from recorder import (AutoCamKillRecorder, FixedCamKillRecorder,
-                      VictimAutoCamKillRecorder)
+from recorder import (AutoCamKillRecorder, ChallengerFixedCamKillRecorder,
+                      FixedCamKillRecorder, VictimAutoCamKillRecorder)
 
 
 class RecordNotSuccess(Exception): pass
@@ -23,8 +24,13 @@ class Manager:
     recorder_class = AutoCamKillRecorder
     editor_class = SummonerMinmapInterfaceEditor
     kill_event_queries = dict()
+    host = settings.DATA_SERVER_HOST
 
     def __init__(self, record_count):
+        self.kill_replay_api = KillReplay(host=self.host)
+        self.not_recorded_kill_event_api = NotRecordedKillEvent(host=self.host)
+        self.replay_blacklist_api = ReplayBlackList(host=self.host)
+
         self.record_count = record_count
         self.recorded_count = 0
         self.download_dir = self.get_download_dir()
@@ -69,22 +75,14 @@ class Manager:
         return self.editor_class(path, 'replays/result.mp4').excute()
 
     def focus_replay_window(self):
-        while True:
-            windows = gw.getWindowsWithTitle('League of Legends (TM) Client')
-            if len(windows) == 0:
-                continue
-            window = windows[0]
-            try:
-                window.activate()
-            except gw.PyGetWindowException:
-                pass
-            break
+        time.sleep(15)
+        pydirectinput.click(1920 // 2, 1080 // 2)
 
     def match_id_no_region(self, match_id):
         return match_id.split('_')[1]
 
     def get_kill_events(self):
-        kill_events = NotRecordedKillEvent().get(**self.kill_event_queries).json()
+        kill_events = self.not_recorded_kill_event_api.get(**self.kill_event_queries).json()
         return [EasyDict(e) for e in kill_events]
 
     def download(self, match_id, try_count=0):
@@ -123,7 +121,7 @@ class Manager:
 
     def send_replay_to_server(self, event_id, path):
         with open(path, 'rb') as f, open(self.org_file_path, 'rb') as org_f:
-            KillReplay().post(
+            self.kill_replay_api.post(
                 data={
                     'event': event_id
                 },
@@ -155,7 +153,7 @@ class Manager:
             return None
 
     def clientapi_except_handle(self, e, match_id):
-        ReplayBlackList().post(
+        self.replay_blacklist_api.post(
             data={
                 'match': match_id,
                 'msg': str(e),
@@ -177,7 +175,7 @@ class NoneEditorManager(Manager):
 
     def send_replay_to_server(self, event_id, path):
         with open(path, 'rb') as f:
-            KillReplay().post(
+            self.kill_replay_api.post(
                 data={
                     'event': event_id
                 },
@@ -192,6 +190,30 @@ class NoneEditorManager(Manager):
 
 class UltimateNoneEditorManager(NoneEditorManager):
     recorder_class = VictimAutoCamKillRecorder
+    kill_event_queries = {
+        'o': '-sequence_ultimate_hit_count',
+    }
+
+
+class SimpleEditorManager(NoneEditorManager):
+    recorder_class = FixedCamKillRecorder
+    editor_class = Editor
+
+
+class UltimateSimpleEditorManager(SimpleEditorManager):
+    recorder_class = VictimAutoCamKillRecorder
+    kill_event_queries = {
+        'o': '-sequence_ultimate_hit_count',
+    }
+
+
+class ChallengerSimpleEditorManager(Manager):
+    host = settings.CHALLENGER_DATA_SERVER_HOST
+    recorder_class = ChallengerFixedCamKillRecorder
+    editor_class = Editor
+
+
+class ChallengerUltimateSimpleEditorManager(ChallengerSimpleEditorManager):
     kill_event_queries = {
         'o': '-sequence_ultimate_hit_count',
     }

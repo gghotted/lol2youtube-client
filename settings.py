@@ -12,6 +12,8 @@ def set(key, default):
 
 set('DATA_SERVER_HOST', 'http://localhost:8000')
 
+set('CHALLENGER_DATA_SERVER_HOST', 'http://localhost:8001')
+
 # 리플레이 조작 가능한 최소 시점
 set('REPLAY_API_READY_MIN_SEC', 10)
 
